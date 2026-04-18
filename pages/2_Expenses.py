@@ -1,22 +1,8 @@
 import streamlit as st
 import pandas as pd
-import json
-import os
 from datetime import datetime
-
-DATA_FILE = "goals.json"
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            data = json.load(f)
-            if "expenses" not in data: data["expenses"] = []
-            return data
-    return {"grab_balance": 0.0, "goals": [], "expenses": []}
-
-def save_data(data):
-    with open(DATA_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+# Change the import line to this:
+from db_helper import get_balance, update_balance, get_expenses, insert_expense
 
 def check_password():
     admin_pass = st.secrets.get("password", "admin123") 
@@ -29,56 +15,61 @@ def check_password():
 
 if check_password():
     st.title("💸 Expense Tracker")
-    data = load_data()
 
-    # Quick Summary
-    total_expenses = sum(item.get("amount", 0) for item in data.get("expenses", []))
-    st.metric("Total Expenses Logged", f"RM {total_expenses:.2f}")
+    all_expenses = get_expenses()
+    total_expenses = sum(item.get("amount", 0) for item in all_expenses)
     
+    st.metric("Total Expenses Logged", f"RM {total_expenses:.2f}")
     st.divider()
 
-    # Add new Expense Form
+    # --- ADD EXPENSE FORM ---
     st.subheader("Log a New Expense")
     with st.form("expense_form"):
-        col1, col2 = st.columns([3, 1])
+        e_desc = st.text_input("What was it for?")
+        
+        col1, col2, col3 = st.columns(3)
         with col1:
-            e_desc = st.text_input("What was it for?")
-        with col2:
             e_amount = st.number_input("Amount (RM)", min_value=0.1, step=10.0)
-            
-        e_date = st.date_input("Date", datetime.today())
+        with col2:
+            e_type = st.selectbox("Category", ["Family Expense", "Personal", "Wife"])
+        with col3:
+            e_date = st.date_input("Date", datetime.today())
         
         submitted = st.form_submit_button("Record Expense")
         if submitted:
-            data["expenses"].append({
+            # Use our new REST function instead of the SDK
+            insert_expense({
                 "date": str(e_date),
                 "description": e_desc,
-                "amount": float(e_amount)
+                "amount": float(e_amount),
+                "expense_type": e_type
             })
-            # Automatically deduct from Funds Collected
-            data["grab_balance"] -= float(e_amount)
-            save_data(data)
-            st.success(f"Recorded RM {e_amount} for {e_desc}. Deducted from total funds.")
+            
+            # Deduct from Grab balance
+            current_bal = get_balance()
+            update_balance(current_bal - float(e_amount))
+            
+            st.success(f"Recorded RM {e_amount}. Deducted from funds.")
             st.rerun()
 
     st.divider()
 
-    # View & Edit History
+    # --- VIEW HISTORY ---
     st.subheader("Expense History")
-    if not data["expenses"]:
+    
+    if not all_expenses:
         st.info("No expenses recorded yet.")
     else:
-        df_expenses = pd.DataFrame(data["expenses"])
-        edited_expenses = st.data_editor(
-            df_expenses, 
-            num_rows="dynamic", 
-            use_container_width=True,
-            column_config={
-                "amount": st.column_config.NumberColumn("Amount (RM)", format="%.2f")
-            }
-        )
+        df_expenses = pd.DataFrame(all_expenses)
         
-        if st.button("Save History Edits"):
-            data["expenses"] = edited_expenses.to_dict(orient="records")
-            save_data(data)
-            st.success("Expense history updated.")
+        # Add a quick filter
+        filter_type = st.selectbox("Filter by Category", ["All", "Family Expense", "Personal", "Wife"])
+        
+        if filter_type != "All":
+            df_expenses = df_expenses[df_expenses['expense_type'] == filter_type]
+            
+        st.dataframe(
+            df_expenses[["date", "description", "expense_type", "amount"]], 
+            use_container_width=True,
+            hide_index=True
+        )

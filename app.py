@@ -1,6 +1,6 @@
 import streamlit as st
-import json
-import os
+import pandas as pd
+from db_helper import get_balance, get_goals
 
 st.set_page_config(page_title="Alan's Tracker", layout="centered")
 
@@ -11,29 +11,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-DATA_FILE = "goals.json"
-
-def load_data():
-    if os.path.exists(DATA_FILE):
-        with open(DATA_FILE, "r") as f:
-            data = json.load(f)
-            if "expenses" not in data: data["expenses"] = []
-            return data
-    return {"grab_balance": 0.0, "goals": [], "expenses": []}
-
-data = load_data()
-grab_balance = data.get("grab_balance", 0.0)
+# Fetch live data from Supabase
+grab_balance = get_balance()
+all_goals = get_goals()
 
 st.title("🎯 Goal & Debt Overview")
 st.metric("Funds Collected", f"RM {grab_balance:.2f}")
 st.divider()
 
-if not data["goals"]:
+if not all_goals:
     st.info("No goals added yet. Go to the Edit page.")
 
-sorted_goals = sorted(data["goals"], key=lambda x: x.get("rank", 99))
-active_goals = [g for g in sorted_goals if not g.get("paid", False)]
-paid_goals = [g for g in sorted_goals if g.get("paid", False)]
+active_goals = [g for g in all_goals if not g.get("paid", False)]
+paid_goals = [g for g in all_goals if g.get("paid", False)]
 
 remaining_funds = grab_balance
 
@@ -46,7 +36,10 @@ for goal in active_goals:
                 st.error(f"🔥 **{goal['name']}**")
             else:
                 st.markdown(f"**{goal['name']}**")
-            st.caption(f"Due: {goal['deadline']}")
+            
+            # Format date nicely if it exists
+            due_date = goal.get('deadline')
+            st.caption(f"Due: {due_date if due_date else 'No Date'}")
         with col2:
             st.metric("Target", f"RM {goal['amount']:.2f}")
         
