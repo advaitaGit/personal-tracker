@@ -1,0 +1,31 @@
+{
+    "grab_balance": 175.0,
+    "goals": [
+        {
+            "id": 1,
+            "name": "Target 1 (Example)",
+            "amount": 500.0,
+            "deadline": "2026-04-30",
+            "priority": "High"
+        },
+        {
+            "id": 2,
+            "name": "Pay Mng Fee",
+            "amount": 200.0,
+            "deadline": "2026-04-18",
+            "priority": "High"
+        }
+    ],
+    "expenses": [
+        {
+            "date": "2026-04-18",
+            "description": "Nasi ayam",
+            "amount": 21.0
+        },
+        {
+            "date": "2026-04-18",
+            "description": "Grab frm MMU",
+            "amount": 14.0
+        }
+    ]
+}
