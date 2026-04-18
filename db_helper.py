@@ -32,7 +32,7 @@ def insert_goal(goal_data):
     requests.post(f"{URL}/rest/v1/goals", headers=HEADERS, json=goal_data, verify=False).raise_for_status()
 
 def upsert_goals(records):
-    # Clean records to remove 'None' values that crash the iPad/Web
+    # Clean records to remove 'None' or 'NaN' values that crash the iPad/Web
     cleaned = [{k: v for k, v in r.items() if v is not None and str(v) != 'nan'} for r in records]
     headers = HEADERS.copy()
     headers["Prefer"] = "resolution=merge-duplicates, return=minimal"
