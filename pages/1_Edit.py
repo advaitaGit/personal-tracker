@@ -22,6 +22,34 @@ def check_password():
 if check_password():
     st.title("⚙️ Command Center")
     
+    # --- 1. QUICK ADD NEW GOAL ---
+    with st.expander("➕ Create New Goal / Target", expanded=False):
+        with st.form("new_goal_form", clear_on_submit=True):
+            col1, col2 = st.columns(2)
+            with col1:
+                g_name = st.text_input("Goal Name")
+                g_amount = st.number_input("Target Amount (RM)", min_value=0.0)
+                g_rank = st.number_input("Priority Rank (1 = First)", min_value=1, step=1)
+            with col2:
+                g_date = st.date_input("Deadline")
+                g_pri = st.selectbox("Priority Level", ["Normal", "High"])
+            
+            if st.form_submit_button("Add Goal"):
+                new_goal = {
+                    "name": g_name,
+                    "amount": g_amount,
+                    "rank": g_rank,
+                    "deadline": str(g_date),
+                    "priority": g_pri,
+                    "paid": False
+                }
+                insert_goal(new_goal)
+                st.success(f"Goal '{g_name}' added!")
+                st.rerun()
+
+    st.divider()
+
+    
     # --- FUNDS UPDATE ---
     st.subheader("Update Funds Collected")
     current_bal = get_balance()

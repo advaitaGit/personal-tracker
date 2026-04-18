@@ -56,20 +56,20 @@ if check_password():
 
     # --- VIEW HISTORY ---
     st.subheader("Expense History")
+    all_exp = get_expenses()
     
-    if not all_expenses:
-        st.info("No expenses recorded yet.")
-    else:
-        df_expenses = pd.DataFrame(all_expenses)
+    if all_exp:
+        df_exp = pd.DataFrame(all_exp)
+        st.dataframe(df_exp[["date", "description", "expense_type", "amount"]], use_container_width=True)
         
-        # Add a quick filter
-        filter_type = st.selectbox("Filter by Category", ["All", "Family Expense", "Personal", "Wife"])
-        
-        if filter_type != "All":
-            df_expenses = df_expenses[df_expenses['expense_type'] == filter_type]
+        # --- DELETE SECTION ---
+        with st.expander("🗑️ Delete a Duplicate/Wrong Expense"):
+            # Create a label like "RM 50.00 - Groceries (2026-04-18)"
+            options = {f"RM {item['amount']} - {item['description']} ({item['date']})": item['id'] for item in all_exp}
+            to_delete = st.selectbox("Select expense to remove", options.keys())
             
-        st.dataframe(
-            df_expenses[["date", "description", "expense_type", "amount"]], 
-            use_container_width=True,
-            hide_index=True
-        )
+            if st.button("Delete Selected Expense", type="primary"):
+                expense_id = options[to_delete]
+                delete_expense(expense_id)
+                st.warning("Expense deleted. Balance NOT automatically restored (Adjust manually in Edit if needed).")
+                st.rerun()
